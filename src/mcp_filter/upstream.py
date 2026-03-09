@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Dict, List, Optional, Protocol
 
 from pydantic import BaseModel
@@ -122,7 +123,7 @@ async def _connect_stdio(fastmcp: Any, command: str, args: Optional[List[str]]) 
                 raise ConfigError("npx transport requires a package name")
             package = args[0]
             package_args = args[1:] if len(args) > 1 else []
-            transport = NpxStdioTransport(package=package, args=package_args)
+            transport = NpxStdioTransport(package=package, args=package_args, env_vars=os.environ.copy())
         elif command.endswith(".py") or command == "python":
             # python script.py args -> PythonStdioTransport(script, args)
             if command == "python" and args:
@@ -131,17 +132,17 @@ async def _connect_stdio(fastmcp: Any, command: str, args: Optional[List[str]]) 
             else:
                 script = command
                 script_args = args
-            transport = PythonStdioTransport(script_path=script, args=script_args)
+            transport = PythonStdioTransport(script_path=script, args=script_args, env=os.environ.copy())
         else:
             # Generic command -> try importing generic StdioTransport or NodeStdioTransport
             from fastmcp.client import StdioTransport
             # StdioTransport might not accept command directly, let's check NodeStdioTransport
             try:
                 from fastmcp.client import NodeStdioTransport
-                transport = NodeStdioTransport(command=command, args=args)
+                transport = NodeStdioTransport(command=command, args=args, env=os.environ.copy())
             except (ImportError, TypeError):
                 # Fallback to generic if available
-                transport = StdioTransport(command=command, args=args)
+                transport = StdioTransport(command=command, args=args, env=os.environ.copy())
 
         client = Client(transport)
 
